@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI DOMINATION</title>
 
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css">
-
 </head>
 
 <body>
   <div class="wrap">
 
+    <!-- HUD -->
     <div class="panel">
       <strong>Robot HP:</strong> <span id="rHp">5</span>/5
       &nbsp; | &nbsp;
@@ -20,28 +21,33 @@
       <span id="weather">Clear</span>
     </div>
 
+    <!-- Arena -->
     <div class="arena" id="arena">
       <!-- Background -->
       <img id="clouds" class="layer" src="Cloud.png" alt="" />
-      <img id="tree-left"  class="layer tree" src="Tree.png" />
-      <img id="tree-right" class="layer tree" src="Tree.png" />
-      <img class="grass1" src="Grass.png" />
-      <img class="grass2" src="Grass.png" />
-      <img class="grass3" src="Grass.png" />
 
+      <!-- Trees -->
+      <img id="tree-left"  class="layer tree" src="Tree.png" alt="" />
+      <img id="tree-right" class="layer tree" src="Tree.png" alt="" />
+
+      <!-- Grass tiles -->
+      <img class="grass1" src="Grass.png" alt="" />
+      <img class="grass2" src="Grass.png" alt="" />
+      <img class="grass3" src="Grass.png" alt="" />
 
       <!-- Characters -->
       <img id="player" class="sprite" src="player-stand.png" alt="player" />
-      <img id="robot"  class="sprite" src="robot-stand.png"  alt="robot" />
+      <img id="robot"  class="sprite" src="robot-stand.png" alt="robot" />
 
       <!-- Rain overlay -->
       <img id="rain" class="layer" src="Rain.png" alt="" />
     </div>
 
+    <!-- Controls + Log -->
     <div class="panel">
       <div class="controls">
         <button id="btnHit">Hit</button>
-        <button id="btnStand">Stand</button>
+        <button id="btnJump">Jump</button>
         <button id="btnRestart">Restart</button>
       </div>
       <div id="log" class="panel" style="margin-top:10px;"></div>
@@ -49,143 +55,12 @@
 
   </div>
 
-  <script>
-    // ====== Your sprite file names (exact) ======
-    const playerImgs = {
-      stand: "player-stand.png",
-      sword: "player-sword.png",
-      swordhit: "player-swordhit.png",
-    };
-
-    const robotImgs = {
-      stand: "robot-stand.png",
-      handsup: "robot-handsup.png",
-      crying: "robot-crying.png",
-      runsaway: "robot-runsaway.png",
-      shoots: "robot-ShootsLaser.png",
-      dead: "robot-dead.png",
-    };
-
-    // Elements
-    const playerEl = document.getElementById("player");
-    const robotEl  = document.getElementById("robot");
-    const rainEl   = document.getElementById("rain");
-    const rHpEl    = document.getElementById("rHp");
-    const timerEl  = document.getElementById("timer");
-    const weatherEl= document.getElementById("weather");
-    const logEl    = document.getElementById("log");
-
-    let rHp = 5;
-    let timeLeft = 60;
-    let raining = false;
-    let ended = false;
-
-    function log(msg){ logEl.textContent = msg + "\n" + logEl.textContent; }
-
-    function setRain(on){
-      raining = on;
-      rainEl.classList.toggle("on", on);
-      weatherEl.textContent = on ? "Raining 🌧️" : "Clear";
-    }
-
-    function setRobot(imgKey){
-      robotEl.src = robotImgs[imgKey];
-    }
-    function setPlayer(imgKey){
-      playerEl.src = playerImgs[imgKey];
-    }
-
-    function endGame(reason){
-      ended = true;
-      log("=== END: " + reason + " ===");
-      setRobot("dead");
-      document.querySelectorAll("button").forEach(b=>{
-        if(b.id !== "btnRestart") b.disabled = true;
-      });
-    }
-
-    function robotReactToRain(){
-      // silly: rain instantly decides fate
-      const roll = Math.random();
-      if (roll < 0.5) return endGame("Robot short-circuited and perished 💀");
-      setRobot("crying");
-      setTimeout(()=> setRobot("runsaway"), 350);
-      setTimeout(()=> endGame("Robot panicked and ran away 😭🏃"), 700);
-    }
-
-    function robotTurn(){
-      if (ended) return;
-
-      if (raining) return robotReactToRain();
-
-      // random move: hands up / shoot / cry-run
-      const moves = ["handsup", "shoots", "crying"];
-      const m = moves[Math.floor(Math.random()*moves.length)];
-
-      if (m === "shoots") {
-        setRobot("shoots");
-        log("Robot shoots laser!");
-        setTimeout(()=> setRobot("stand"), 400);
-        return;
-      }
-
-      if (m === "crying") {
-        setRobot("crying");
-        log("Robot cries...");
-        setTimeout(()=> setRobot("stand"), 400);
-        return;
-      }
-
-      setRobot("handsup");
-      log("Robot jumps/hands up!");
-      setTimeout(()=> setRobot("stand"), 350);
-    }
-
-    function hitRobot(dmg){
-      if (ended) return;
-      rHp = Math.max(0, rHp - dmg);
-      rHpEl.textContent = rHp;
-
-      if (rHp === 0) return endGame("Robot defeated.");
-
-      robotTurn();
-    }
-
-    // Controls
-    document.getElementById("btnHit").onclick = () => {
-      setPlayer("swordhit");
-      log("Player Hits!");
-      hitRobot(1);
-      setTimeout(()=> setPlayer("stand"), 250);
-    };
-
-    document.getElementById("btnStand").onclick = () => {
-      setPlayer("stand");
-      log("Player stands.");
-      robotTurn();
-    };
-
-    document.getElementById("btnRestart").onclick = () => location.reload();
-
-    // Timer + random rain trigger (once)
-    log("Fight start. Robot has 5 HP. Random rain can end it early.");
-
-    const tick = setInterval(()=>{
-      if (ended) return clearInterval(tick);
-
-      timeLeft--;
-      timerEl.textContent = timeLeft;
-
-      // trigger rain randomly after a few seconds
-      if (!raining && timeLeft <= 55 && Math.random() < 0.10){
-        setRain(true);
-        log("It started raining out of nowhere... robot isn't waterproof!");
-        // optional: react immediately
-        // robotReactToRain();
-      }
-
-      if (timeLeft <= 0) endGame("Time up!");
-    }, 1000);
-  </script>
+  <!-- Scripts (ORDER MATTERS) -->
+  <script src="render.js"></script>
+  <script src="boss.js"></script>
+  <script src="AI.js"></script>
+  <script src="mainplayer.js"></script>
+  <script src="input.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
